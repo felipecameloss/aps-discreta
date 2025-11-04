@@ -1,76 +1,50 @@
-% constantes: c = Charlies, a = Ankalaev
-% Predicados (conforme seu enunciado)
-% lutador(X). amador(X). luta_com(X,Y). treinador(X). plateia(X).
-% vibra_por(P,X). ganha_de(X,Y). tem_treinador(X). tem_lutador(X). treina(X).
+% Código para colar no SWISH - ufc_mundo
 
-% ---- fatos básicos ----
-lutador(c).
-lutador(a).
-% existência de um lutador amador com treinador (premissa existencial)
-lutador(b).
-amador(b).
-tem_treinador(b).
+% --- fatos / constantes ---
+lutador(charlies).
+lutador(ankalaev).
 
-% Ankalaev treina e Charlies ganhou de Ankalaev
-treina(a).
-ganha_de(c,a).
-
-% exemplo de plateia (concretiza "plateia" para poder inferir vibra_por)
 plateia(p1).
 plateia(p2).
 
-% exemplo de relação de luta (adversários)
-luta_com(c,a).
-luta_com(a,c).
+treinador(ze).
+treinador_de(ankalaev, ze).
 
-% existe um treinador sem lutador (nem todo treinador tem um lutador)
-treinador(t1).
-% (não afirmamos tem_lutador(t1) para que t1 seja um treinador sem lutador)
+amador(ankalaev).
 
-% ---- regras (traduções das premissas universais/implicativas) ----
+luta(charlies, ankalaev).
+luta(ankalaev, charlies).
 
-% 1) "Se Charlies ganhou de Ankalaev então toda plateia vibra por Charlies"
-vibra_por(P, c) :-
-    ganha_de(c, a),
-    plateia(P).
+% fato conhecido
+ganha(charlies, ankalaev).
 
-% 2) "Todo lutador que não é Charlies já perdeu pra ele"
-%    (interpretação: para qualquer X lutador distinto de c, Charlies ganhou de X)
-ganha_de(c, X) :-
-    lutador(X),
-    X \= c.
-
-% 3) "Para todo lutador, se a plateia vibra, ele ganhou de seu adversário."
-%    (uso praticável: se existe pelo menos um membro da plateia que vibra por X
-%     e X lutou com Y, então X ganhou de Y)
-plateia_vibra_por_alguem(X) :-
+% --- regras (todas agrupadas) ---
+% se alguém ganhou, todos os membros da plateia vibram por esse vencedor
+vibra(P, X) :-
     plateia(P),
-    vibra_por(P, X).
+    ganha(X, _).
 
-ganhou_de_se_plateia_vibra(X, Y) :-
+% todo lutador que não é charlies já perdeu para ele
+perdeu_para(X, charlies) :-
     lutador(X),
-    plateia_vibra_por_alguem(X),
-    luta_com(X, Y),
-    ganha_de(X, Y).
+    X \= charlies,
+    ganha(charlies, X).
 
-% 4) "Para todo lutador que ganha, a plateia vibra." (regra geral)
-vibra_por(P, X) :-
+% todo lutador já perdeu para outro lutador
+ja_perdeu_para(X, Y) :-
     lutador(X),
-    ganha_de(X, _SomeOne),
-    plateia(P).
+    lutador(Y),
+    ganha(Y, X),
+    X \= Y.
 
-% 5) "Todo lutador tem um treinador"
-tem_treinador_de_lutador(X) :-
+% verificação: nenhum amador ganha de um profissional
+violacao_amador_prof(X, Y) :-
+    amador(X),
+    lutador(Y),
+    \+ amador(Y),
+    ganha(X, Y).
+
+% todo lutador tem treinador (existência modelada)
+tem_treinador(X) :-
     lutador(X),
-    tem_treinador(X).
-
-% 6) "Todo lutador já perdeu para outro lutador"
-perdeu_para(Quem, X) :-
-    lutador(X),
-    lutador(Quem),
-    Quem \= X,
-    ganha_de(Quem, X).
-
-% 7) Restrição: "Nenhum amador ganha de um profissional."
-%    Implementada como cláusula proibitiva: se essa situação for querida, ela contradiz a KB.
-:- amador(X), \+ amador(Y), ganha_de(X, Y).
+    treinador_de(X, _).
